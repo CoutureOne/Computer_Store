@@ -3,8 +3,7 @@ package com.couture.store.service.impl;
 import com.couture.store.entity.User;
 import com.couture.store.mapper.UserMapper;
 import com.couture.store.service.IUserService;
-import com.couture.store.service.ex.InsertException;
-import com.couture.store.service.ex.UsernameDuplicatedException;
+import com.couture.store.service.ex.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
@@ -59,8 +58,89 @@ public class UserServiceImpl implements IUserService {
         }
     }
 
+    @Override
+    public User login(String username, String password) {
+
+        // 根据用户名称来查询用户的数据是否存在，如果不存在则抛出异常
+        User result = userMapper.findByUsername(username);
+        if (result == null) {
+            throw new UserNotFoundException("用户数据不存在");
+        }
+
+        // 检测用户的密码是否匹配
+        String oldPassword = result.getPassword();
+        String salt = result.getSalt();
+        String newMd5Password = getMD5Password(password, salt);
+
+        if (!newMd5Password.equals(oldPassword)) {
+            throw new PasswordNotMatchException("用户密码错误");
+        }
+
+        if (result.getIsDelete() == 1) {
+            throw new UserNotFoundException("用户数据不存在");
+        }
+
+        // 调用mapper层的findByUsername 来查询用户数据
+        User user = new User();
+        user.setUid(result.getUid());
+        user.setUsername(result.getUsername());
+        user.setAvatar(result.getAvatar());
+
+        return user;
+    }
+
+    @Override
+    public void changePassword(Integer uid, String username, String oldPassword, String newPassword) {
+        User result = userMapper.findByUid(uid);
+        if (result == null || result.getIsDelete() == 1) {
+            throw new UserNotFoundException("用户数据不存在");
+        }
+
+        String oldMd5Password = getMD5Password(oldPassword, result.getSalt());
+        if (!result.getPassword().equals(oldMd5Password)) {
+            throw new PasswordNotMatchException("密码错误");
+        }
+        // 将新的密码设置到数据库中，将新的密码进行加密再去更新
+        String newMd5Password = getMD5Password(newPassword, result.getSalt());
+        Integer rows = userMapper.updatePasswordByUid(uid, newMd5Password, username, new Date());
+        if (rows != 1) {
+            throw new UpdateException("更新数据时产生未知地异常");
+        }
+    }
+
+    @Override
+    public User getByUid(Integer uid) {
+        User result = userMapper.findByUid(uid);
+        if (result == null || result.getIsDelete() == 1) {
+            throw new UserNotFoundException("用户信息不存在");
+        }
+        User user = new User();
+        user.setUsername(result.getUsername());
+        user.setPhone(result.getPhone());
+        user.setEmail(result.getEmail());
+        user.setGender(result.getGender());
+
+        return user;
+    }
+
+    @Override
+    public void changeInfo(Integer uid, String username, User user) {
+        User result = userMapper.findByUid(uid);
+        if (result == null || result.getIsDelete() == 1) {
+            throw new UserNotFoundException("当前用户数据不存在");
+        }
+        user.setUid(uid);
+        user.setModifiedUser(username);
+        user.setModifiedTime(new Date());
+
+        Integer rows = userMapper.updateInfoByUid(user);
+        if (rows != 1) {
+            throw new UpdateException("更新数据时未产生异常");
+        }
+    }
+
     private String getMD5Password(String password, String salt) {
-        for (int i = 0; i < 3; i++) {
+            for (int i = 0; i < 3; i++) {
             // MD5加密算法的调用(进行三次加密)
             password = DigestUtils.md5DigestAsHex((salt + password + salt).getBytes()).toUpperCase();
         }
