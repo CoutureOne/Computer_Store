@@ -1,5 +1,6 @@
 package com.couture.store.controller;
 
+import com.couture.store.controller.ex.*;
 import com.couture.store.service.ex.*;
 import com.couture.store.util.JsonResult;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -16,7 +17,7 @@ public class BaseController {
     public static final int OK = 200;
 
     // 用于统一处理抛出的异常
-    @ExceptionHandler(ServiceException.class)
+    @ExceptionHandler({ServiceException.class, FileUploadException.class})
     public JsonResult<Void> HandleException(Throwable e) {
         JsonResult<Void> result = new JsonResult<>(e);
         if (e instanceof UsernameDuplicatedException) {
@@ -35,6 +36,16 @@ public class BaseController {
         } else if (e instanceof UpdateException) {
             result.setState(5001);
             result.setMessage("更新数据时产生未知的异常");
+        } else if (e instanceof FileEmptyException) {
+            result.setState(6000);
+        } else if (e instanceof FileSizeException) {
+            result.setState(6001);
+        } else if (e instanceof FileTypeException) {
+            result.setState(6002);
+        } else if (e instanceof FileStateException) {
+            result.setState(6003);
+        } else if (e instanceof FileUploadIOException) {
+            result.setState(6004);
         }
         return result;
     }

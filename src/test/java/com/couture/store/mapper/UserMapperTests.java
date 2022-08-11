@@ -68,4 +68,10 @@ public class UserMapperTests {
         Integer rows = userMapper.updateInfoByUid(user);
         System.out.println("rows=" + rows);
     }
+
+    @Test
+    public void updateAvatarByUid() {
+        userMapper.updateAvatarByUid(6, "/upload/avatar.png",
+                "admin", new Date());
+    }
 }
