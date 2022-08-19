@@ -176,5 +176,4 @@ public class UserController extends BaseController {
             // 返回成功头像路径
             return new JsonResult<String>(OK, avatar);
         }
-    }
 }
